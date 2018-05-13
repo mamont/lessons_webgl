@@ -3,15 +3,23 @@ import { mat4 } from 'gl-matrix';
 console.log('webgl is here');
 
 class GLScene {
-  private readonly gl: WebGLRenderingContext
-  private shaderProgram: WebGLProgram;
+    private readonly gl: WebGLRenderingContext
+    private shaderProgram: WebGLProgram;
 
-  constructor(canvas: HTMLCanvasElement) {
-    this.gl = GLScene.initGL(canvas);
+    private vertexPositionAttribute : any;
 
-    this.initShaders(this.gl);
-    this.initBuffers(this.gl);
-  }
+    private pMatrixUniform : any;
+    private mvMatrixUniform : any;
+
+    private triangleVertexPositionBuffer : any;
+    private squareVertexPositionBuffer : any;
+
+    constructor(canvas: HTMLCanvasElement) {
+        this.gl = GLScene.initGL(canvas);
+
+        this.initShaders(this.gl);
+        this.initBuffers(this.gl);
+    }
 
   static initGL(canvas: HTMLCanvasElement): WebGLRenderingContext {
     try {
@@ -73,10 +81,12 @@ class GLScene {
     }
 
     gl.useProgram(shaderProgram);
-    // shaderProgram.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
-    // gl.enableVertexAttribArray(shaderProgram.vertexPositionAttribute);
-    // shaderProgram.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
-    // shaderProgram.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    this.vertexPositionAttribute = gl.getAttribLocation(shaderProgram, "aVertexPosition");
+    gl.enableVertexAttribArray(this.vertexPositionAttribute);
+
+    this.pMatrixUniform = gl.getUniformLocation(shaderProgram, "uPMatrix");
+    this.mvMatrixUniform = gl.getUniformLocation(shaderProgram, "uMVMatrix");
+    this.shaderProgram = shaderProgram;
   }
 
   initBuffers(gl: WebGLRenderingContext) {
@@ -116,18 +126,18 @@ class GLScene {
     mat4.perspective(mymat, 45, gl.drawingBufferWidth / gl.drawingBufferHeight, 0.1, 100.0);
     mat4.identity(mvMatrix);
 
-    /*
-    mat4.translate(mvMatrix, [-1.5, 0.0, -7.0]);
-    gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, triangleVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    setMatrixUniforms();
-    gl.drawArrays(gl.TRIANGLES, 0, triangleVertexPositionBuffer.numItems);
-    mat4.translate(mvMatrix, [3.0, 0.0, 0.0]);
-    gl.bindBuffer(gl.ARRAY_BUFFER, squareVertexPositionBuffer);
-    gl.vertexAttribPointer(shaderProgram.vertexPositionAttribute, squareVertexPositionBuffer.itemSize, gl.FLOAT, false, 0, 0);
-    setMatrixUniforms();
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, squareVertexPositionBuffer.numItems);
-    */
+    mat4.translate(mvMatrix, mvMatrix, [-1.5, 0.0, -7.0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.triangleVertexPositionBuffer);
+    gl.vertexAttribPointer(this.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    this.setMatrixUniforms();
+
+    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    mat4.translate(mvMatrix, mvMatrix, [3.0, 0.0, 0.0]);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.squareVertexPositionBuffer);
+    gl.vertexAttribPointer(this.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    this.setMatrixUniforms();
+
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     mat4.translate(null, mvMatrix, [-1.5, 0.0, -7.0]);
 
@@ -141,21 +151,23 @@ class GLScene {
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(triangleVertices), gl.STATIC_DRAW);
     gl.bindBuffer(gl.ARRAY_BUFFER, triangleVertexPositionBuffer);
 
-    gl.vertexAttribPointer(this.shaderProgram.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribPointer(this.vertexPositionAttribute, 3, gl.FLOAT, false, 0, 0);
     gl.drawArrays(gl.TRIANGLES, 0, 3);
   }
 
-  public init(): void {
-    this.initShaders(this.gl);
-    this.initBuffers(this.gl);
+    private setMatrixUniforms() {
+        this.gl.uniformMatrix4fv(this.pMatrixUniform, false, pMatrix);
+        this.gl.uniformMatrix4fv(this.mvMatrixUniform, false, mvMatrix);
+    }
 
-    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    this.gl.enable(this.gl.DEPTH_TEST);
-  }
+    public init(): void {
+        this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+        this.gl.enable(this.gl.DEPTH_TEST);
+    }
 
-  public draw() : void {
-    this.drawScene(this.gl);
-  }
+    public draw() : void {
+        this.drawScene(this.gl);
+    }
 }
 
 function webGLStart() {
